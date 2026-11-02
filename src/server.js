@@ -29,11 +29,59 @@ import platformFeeRoutes, { adminPlatformFeeRouter } from './routes/platformFeeR
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Allowed CORS origins for Admin Panel, Storefront, and local development
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'https://admin-plux-pc.vercel.app',
+];
+
+// Append origins from environment variables if present
+if (process.env.ADMIN_CLIENT_URL) {
+  process.env.ADMIN_CLIENT_URL.split(',').forEach((url) => {
+    const trimmed = url.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
+  });
+}
+if (process.env.CLIENT_URL) {
+  process.env.CLIENT_URL.split(',').forEach((url) => {
+    const trimmed = url.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
+  });
+}
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // Allow non-browser requests (Postman, server-to-server, curl)
+  if (allowedOrigins.includes(origin)) return true;
+
+  // Allow Vercel preview and branch deployments for PLUXPC admin panel (e.g. https://admin-plux-pc-*.vercel.app)
+  if (/^https:\/\/admin-plux-pc(-[a-zA-Z0-9_-]+)?\.vercel\.app$/.test(origin)) {
+    return true;
+  }
+
+  // Allow Vercel deployments for customer storefront
+  if (/^https:\/\/client-plux-pc(-[a-zA-Z0-9_-]+)?\.vercel\.app$/.test(origin)) {
+    return true;
+  }
+
+  return false;
+};
+
 // Middleware
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
   })
 );
 
