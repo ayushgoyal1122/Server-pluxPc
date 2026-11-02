@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = process.env.TEST_API_URL || 'http://localhost:5000';
 
 async function runTests() {
   console.log('🧪 Starting Wishlist Integration Tests...');

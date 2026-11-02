@@ -35,6 +35,7 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:3000',
   'https://admin-plux-pc.vercel.app',
+  'https://client-plux-pc.vercel.app',
 ];
 
 // Append origins from environment variables if present
