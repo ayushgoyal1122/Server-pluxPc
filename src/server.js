@@ -25,6 +25,11 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import orderRoutes, { adminOrderRouter } from './routes/orderRoutes.js';
 import promotionRoutes, { adminPromotionRouter } from './routes/promotionRoutes.js';
 import platformFeeRoutes, { adminPlatformFeeRouter } from './routes/platformFeeRoutes.js';
+import earningRoutes from './routes/earningRoutes.js';
+import auditLogRoutes from './routes/auditLogRoutes.js';
+import blogRoutes, { adminBlogRouter } from './routes/blogRoutes.js';
+import { seedInitialAuditLogs } from './utils/seedAuditLogs.js';
+import { seedInitialBlogs } from './utils/seedBlogs.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +38,8 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:4173',
+  'http://localhost:4174',
   'http://localhost:3000',
   'https://admin-plux-pc.vercel.app',
   'https://client-plux-pc.vercel.app',
@@ -115,6 +122,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/subcategories', subCategoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/platform-fee', platformFeeRoutes);
+app.use('/api/blogs', blogRoutes);
 
 // Mount Customer Authentication & Shopping Cart Routes
 app.use('/api/auth', customerAuthRoutes);
@@ -132,6 +140,9 @@ app.use('/api/admin/subcategories', adminSubCategoryRouter);
 app.use('/api/admin/orders', adminOrderRouter);
 app.use('/api/admin/promotions', adminPromotionRouter);
 app.use('/api/admin/settings/platform-fee', adminPlatformFeeRouter);
+app.use('/api/admin/earnings', earningRoutes);
+app.use('/api/admin/audit-logs', auditLogRoutes);
+app.use('/api/admin/blogs', adminBlogRouter);
 
 // 404 handler for undefined API routes
 app.use('/api/*', (req, res) => {
@@ -161,6 +172,12 @@ async function startServer() {
 
     // Safe backfill for legacy orders
     await backfillLegacyTrackingHistory();
+
+    // Initialize audit logs baseline
+    await seedInitialAuditLogs(false);
+
+    // Initialize editorial blogs baseline if empty
+    await seedInitialBlogs(false);
 
     app.listen(PORT, () => {
       console.log(`===============================================`);

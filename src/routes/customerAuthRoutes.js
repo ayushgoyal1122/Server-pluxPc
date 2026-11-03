@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { requireCustomer } from '../middleware/customerAuth.js';
+import { recordAuditLog } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -82,6 +83,21 @@ router.post('/register', async (req, res) => {
       { expiresIn }
     );
 
+    await recordAuditLog({
+      req,
+      actor: { id: newUser._id, role: 'customer', type: 'customer', name: newUser.name, email: newUser.email },
+      action: 'REGISTER',
+      actionLabel: 'Register',
+      module: 'AUTHENTICATION',
+      moduleLabel: 'Authentication',
+      entityType: 'User',
+      entityId: newUser._id.toString(),
+      entityTitle: newUser.name,
+      description: `New customer account registered: ${newUser.name} (${newUser.email}).`,
+      result: 'success',
+      changedFields: ['name', 'email', 'role'],
+    });
+
     res.status(201).json({
       success: true,
       message: 'Account created successfully',
@@ -140,6 +156,21 @@ router.post('/login', async (req, res) => {
 
     user.lastLogin = new Date();
     await user.save();
+
+    await recordAuditLog({
+      req,
+      actor: { id: user._id, role: 'customer', type: 'customer', name: user.name, email: user.email },
+      action: 'LOGIN',
+      actionLabel: 'Login',
+      module: 'AUTHENTICATION',
+      moduleLabel: 'Authentication',
+      entityType: 'User',
+      entityId: user._id.toString(),
+      entityTitle: user.name,
+      description: `Customer ${user.name} logged in.`,
+      result: 'success',
+      changedFields: ['lastLogin'],
+    });
 
     const secret = process.env.JWT_SECRET || 'voltix_super_secret_jwt_key_2026_secure';
     const expiresIn = '7d';

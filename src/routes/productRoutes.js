@@ -7,6 +7,7 @@ import {
   calculateItemDiscount,
   getBestPromotionForProduct,
 } from '../utils/discountCalculator.js';
+import { recordAuditLog } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -367,6 +368,20 @@ adminProductRouter.post('/', async (req, res) => {
       { $inc: { productCount: 1 } }
     );
 
+    await recordAuditLog({
+      req,
+      action: 'CREATE',
+      actionLabel: 'Create',
+      module: 'PRODUCTS',
+      moduleLabel: 'Products',
+      entityType: 'Product',
+      entityId: product._id.toString(),
+      entityTitle: product.name,
+      description: `Admin created new product "${product.name}" in category "${product.categoryLabel}".`,
+      result: 'success',
+      metadata: { price: product.price, category: product.category, stockQuantity: product.stockQuantity },
+    });
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
@@ -504,6 +519,21 @@ adminProductRouter.patch('/:id', async (req, res) => {
       ]);
     }
 
+    await recordAuditLog({
+      req,
+      action: 'UPDATE',
+      actionLabel: 'Update',
+      module: 'PRODUCTS',
+      moduleLabel: 'Products',
+      entityType: 'Product',
+      entityId: product._id.toString(),
+      entityTitle: product.name,
+      description: `Admin updated product details for "${product.name}".`,
+      result: 'success',
+      changedFields: Object.keys(updates),
+      metadata: { changedFields: Object.keys(updates) },
+    });
+
     res.json({
       success: true,
       message: 'Product updated successfully',
@@ -541,6 +571,21 @@ adminProductRouter.delete('/:id', async (req, res) => {
       isDeleted: { $ne: true },
     });
     await Category.updateOne({ slug: product.category }, { productCount: activeCount });
+
+    await recordAuditLog({
+      req,
+      action: 'DELETE',
+      actionLabel: 'Delete',
+      module: 'PRODUCTS',
+      moduleLabel: 'Products',
+      entityType: 'Product',
+      entityId: product._id.toString(),
+      entityTitle: product.name,
+      description: `Admin archived product "${product.name}".`,
+      result: 'success',
+      changedFields: ['isDeleted', 'deletedAt', 'deletedReason'],
+      metadata: { reason: product.deletedReason },
+    });
 
     res.json({
       success: true,
@@ -588,6 +633,20 @@ adminProductRouter.patch('/:id/restore', async (req, res) => {
       isDeleted: { $ne: true },
     });
     await Category.updateOne({ slug: product.category }, { productCount: activeCount });
+
+    await recordAuditLog({
+      req,
+      action: 'RESTORE',
+      actionLabel: 'Restore',
+      module: 'PRODUCTS',
+      moduleLabel: 'Products',
+      entityType: 'Product',
+      entityId: product._id.toString(),
+      entityTitle: product.name,
+      description: `Admin restored previously archived product "${product.name}".`,
+      result: 'success',
+      changedFields: ['isDeleted', 'deletedAt'],
+    });
 
     res.json({
       success: true,

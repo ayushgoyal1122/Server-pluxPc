@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Admin } from '../models/Admin.js';
 import { User } from '../models/User.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { recordAuditLog } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -20,6 +21,20 @@ router.post('/login', async (req, res) => {
 
     const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
     if (!admin) {
+      await recordAuditLog({
+        req,
+        actor: { role: 'unauthenticated', type: 'anonymous', name: 'Unknown User', email },
+        action: 'FAILED_LOGIN',
+        actionLabel: 'Failed Login',
+        module: 'AUTHENTICATION',
+        moduleLabel: 'Authentication',
+        entityType: 'Admin',
+        entityTitle: email,
+        description: `Failed administrator login attempt for email "${email}" (Account not found).`,
+        result: 'failure',
+        failureReason: 'Account does not exist',
+      });
+
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
@@ -27,6 +42,21 @@ router.post('/login', async (req, res) => {
     }
 
     if (admin.isDeleted) {
+      await recordAuditLog({
+        req,
+        actor: { id: admin._id, role: 'admin', type: 'admin', name: admin.name, email: admin.email },
+        action: 'FAILED_LOGIN',
+        actionLabel: 'Failed Login',
+        module: 'AUTHENTICATION',
+        moduleLabel: 'Authentication',
+        entityType: 'Admin',
+        entityId: admin._id.toString(),
+        entityTitle: admin.name,
+        description: `Deactivated administrator account attempted to sign in: "${admin.email}".`,
+        result: 'failure',
+        failureReason: 'Account deactivated',
+      });
+
       return res.status(403).json({
         success: false,
         message: 'Your administrator account has been deactivated.',
@@ -35,6 +65,21 @@ router.post('/login', async (req, res) => {
 
     const isMatch = await admin.comparePassword(password);
     if (!isMatch) {
+      await recordAuditLog({
+        req,
+        actor: { id: admin._id, role: 'admin', type: 'admin', name: admin.name, email: admin.email },
+        action: 'FAILED_LOGIN',
+        actionLabel: 'Failed Login',
+        module: 'AUTHENTICATION',
+        moduleLabel: 'Authentication',
+        entityType: 'Admin',
+        entityId: admin._id.toString(),
+        entityTitle: admin.name,
+        description: `Failed login attempt for admin "${admin.name}" (${admin.email}) due to invalid password.`,
+        result: 'failure',
+        failureReason: 'Invalid password',
+      });
+
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
@@ -44,6 +89,21 @@ router.post('/login', async (req, res) => {
     // Update last login
     admin.lastLogin = new Date();
     await admin.save();
+
+    await recordAuditLog({
+      req,
+      actor: { id: admin._id, role: 'admin', type: 'admin', name: admin.name, email: admin.email },
+      action: 'LOGIN',
+      actionLabel: 'Login',
+      module: 'AUTHENTICATION',
+      moduleLabel: 'Authentication',
+      entityType: 'Admin',
+      entityId: admin._id.toString(),
+      entityTitle: admin.name,
+      description: `Administrator ${admin.name} successfully authenticated.`,
+      result: 'success',
+      changedFields: ['lastLogin'],
+    });
 
     const secret = process.env.JWT_SECRET || 'voltix_super_secret_jwt_key_2026_secure';
     const expiresIn = process.env.JWT_EXPIRES_IN || '24h';

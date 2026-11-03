@@ -4,6 +4,7 @@ import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { requireCustomer } from '../middleware/customerAuth.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { recordAuditLog } from '../services/auditService.js';
 
 const router = express.Router();
 export const adminOrderRouter = express.Router();
@@ -412,6 +413,21 @@ adminOrderRouter.patch('/:orderId/status', async (req, res) => {
     });
 
     await order.save();
+
+    await recordAuditLog({
+      req,
+      action: 'STATUS_CHANGE',
+      actionLabel: 'Status Change',
+      module: 'ORDERS',
+      moduleLabel: 'Orders',
+      entityType: 'Order',
+      entityId: order._id.toString(),
+      entityTitle: order.orderNumber || `Order #${order._id}`,
+      description: `Admin updated order status from "${currentStatus}" to "${status}".`,
+      result: 'success',
+      changedFields: ['orderStatus', 'trackingHistory', 'shipment'],
+      metadata: { previousStatus: currentStatus, newStatus: status, courier: courierName, trackingNumber },
+    });
 
     res.json({
       success: true,

@@ -5,6 +5,7 @@ import {
   calculatePlatformFee,
   validatePlatformFeeInput,
 } from '../utils/platformFeeCalculator.js';
+import { recordAuditLog } from '../services/auditService.js';
 
 const router = express.Router();
 export const adminPlatformFeeRouter = express.Router();
@@ -121,6 +122,21 @@ adminPlatformFeeRouter.put('/', async (req, res) => {
 
     await settings.save();
 
+    await recordAuditLog({
+      req,
+      action: 'CONFIG_UPDATE',
+      actionLabel: 'Update',
+      module: 'PLATFORM_FEE',
+      moduleLabel: 'Platform Fee',
+      entityType: 'PlatformFeeSettings',
+      entityId: settings._id?.toString() || 'platform_fee',
+      entityTitle: 'Platform Fee Configuration',
+      description: `Admin updated platform fee rules: feeType=${feeType}, feeValue=${feeValue}, enabled=${Boolean(enabled)}.`,
+      result: 'success',
+      changedFields: ['enabled', 'feeType', 'feeValue', 'minFee', 'maxFee'],
+      metadata: { enabled: Boolean(enabled), feeType, feeValue: Number(feeValue), minFee, maxFee },
+    });
+
     res.json({
       success: true,
       message: 'Platform fee settings updated successfully.',
@@ -144,6 +160,21 @@ adminPlatformFeeRouter.patch('/toggle', async (req, res) => {
       settings.updatedBy = req.admin._id;
     }
     await settings.save();
+
+    await recordAuditLog({
+      req,
+      action: 'STATUS_CHANGE',
+      actionLabel: 'Status Change',
+      module: 'PLATFORM_FEE',
+      moduleLabel: 'Platform Fee',
+      entityType: 'PlatformFeeSettings',
+      entityId: settings._id?.toString() || 'platform_fee',
+      entityTitle: 'Platform Fee Status',
+      description: `Admin ${settings.enabled ? 'activated' : 'disabled'} the global platform fee.`,
+      result: 'success',
+      changedFields: ['enabled'],
+      metadata: { enabled: settings.enabled },
+    });
 
     res.json({
       success: true,
