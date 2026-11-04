@@ -176,6 +176,11 @@ const orderSchema = new mongoose.Schema(
       required: [true, 'Customer reference is required'],
       index: true,
     },
+    contactEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
     items: {
       type: [orderItemSchema],
       required: [true, 'Order items are required'],
@@ -287,6 +292,43 @@ const orderSchema = new mongoose.Schema(
     },
     failureReason: {
       type: String,
+    },
+    // Email Notification Tracking & Concurrency Protection
+    customerEmailStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'sent', 'failed'],
+      default: 'pending',
+      index: true,
+    },
+    customerEmailStartedAt: {
+      type: Date,
+      index: true,
+    },
+    customerEmailSentAt: {
+      type: Date,
+    },
+    customerEmailError: {
+      type: String,
+    },
+    adminEmailStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'sent', 'failed'],
+      default: 'pending',
+      index: true,
+    },
+    adminEmailStartedAt: {
+      type: Date,
+      index: true,
+    },
+    adminEmailSentAt: {
+      type: Date,
+    },
+    adminEmailError: {
+      type: String,
+    },
+    emailRetryCount: {
+      type: Number,
+      default: 0,
     },
   },
   {

@@ -13,6 +13,7 @@ import {
   evaluateCartPromotion,
 } from '../utils/discountCalculator.js';
 import { calculatePlatformFee } from '../utils/platformFeeCalculator.js';
+import { triggerOrderEmails } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.get('/config', (req, res) => {
  */
 router.post('/create-order', requireCustomer, async (req, res) => {
   try {
-    const { deliveryAddress, promoCode } = req.body;
+    const { deliveryAddress, promoCode, contactEmail } = req.body;
 
     // Validate delivery address
     if (!deliveryAddress) {
@@ -84,6 +85,19 @@ router.post('/create-order', requireCustomer, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide a valid 10-digit mobile number.',
+      });
+    }
+
+    // Validate order notification contact email (independent from registered user account)
+    let cleanContactEmail = (req.user.email || '').trim().toLowerCase();
+    if (contactEmail && typeof contactEmail === 'string' && contactEmail.trim()) {
+      cleanContactEmail = contactEmail.trim().toLowerCase();
+    }
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanContactEmail || !EMAIL_REGEX.test(cleanContactEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid order notification email address.',
       });
     }
 
@@ -252,6 +266,7 @@ router.post('/create-order', requireCustomer, async (req, res) => {
     const internalOrder = new Order({
       orderNumber,
       customer: req.user._id,
+      contactEmail: cleanContactEmail,
       items: orderItems,
       subtotalBeforeDiscount: rawSubtotal,
       subtotal: rawSubtotal - itemDiscountsTotal,
@@ -299,7 +314,7 @@ router.post('/create-order', requireCustomer, async (req, res) => {
           notes: {
             internalOrderId: internalOrder._id.toString(),
             customerId: req.user._id.toString(),
-            customerEmail: req.user.email,
+            customerEmail: cleanContactEmail,
           },
         });
         rzpOrderId = rzpResponse.id;
@@ -325,7 +340,7 @@ router.post('/create-order', requireCustomer, async (req, res) => {
       keyId: getKeyId(),
       customer: {
         name: req.user.name,
-        email: req.user.email,
+        email: cleanContactEmail,
         phone: cleanPhone,
       },
     });
@@ -464,6 +479,14 @@ router.post('/verify', requireCustomer, async (req, res) => {
     // Clear customer's shopping cart in MongoDB
     await Cart.findOneAndUpdate({ user: req.user._id }, { $set: { items: [] } });
 
+    // Asynchronously dispatch order confirmation & admin notification emails
+    // Non-blocking & concurrency-safe: Email status changes are tracked independently in Order model
+    setImmediate(() => {
+      triggerOrderEmails(order._id).catch((emailErr) => {
+        console.error('[Payment Verification Email Trigger Error]:', emailErr.message);
+      });
+    });
+
     res.json({
       success: true,
       message: 'Payment successfully verified and order confirmed.',
@@ -544,6 +567,13 @@ router.post('/webhook', async (req, res) => {
 
           // Clear customer's cart
           await Cart.findOneAndUpdate({ user: order.customer }, { $set: { items: [] } });
+
+          // Asynchronously dispatch order confirmation & admin notification emails
+          setImmediate(() => {
+            triggerOrderEmails(order._id).catch((emailErr) => {
+              console.error('[Webhook Email Trigger Error]:', emailErr.message);
+            });
+          });
         }
       }
     } else if (event === 'payment.failed') {

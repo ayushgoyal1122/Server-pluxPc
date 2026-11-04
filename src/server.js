@@ -28,8 +28,11 @@ import platformFeeRoutes, { adminPlatformFeeRouter } from './routes/platformFeeR
 import earningRoutes from './routes/earningRoutes.js';
 import auditLogRoutes from './routes/auditLogRoutes.js';
 import blogRoutes, { adminBlogRouter } from './routes/blogRoutes.js';
+import legalRoutes, { adminLegalRouter } from './routes/legalRoutes.js';
 import { seedInitialAuditLogs } from './utils/seedAuditLogs.js';
 import { seedInitialBlogs } from './utils/seedBlogs.js';
+import { seedInitialLegalContent } from './utils/seedLegalContent.js';
+import { processPendingOrderEmails } from './services/emailService.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -123,6 +126,7 @@ app.use('/api/subcategories', subCategoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/platform-fee', platformFeeRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/legal', legalRoutes);
 
 // Mount Customer Authentication & Shopping Cart Routes
 app.use('/api/auth', customerAuthRoutes);
@@ -143,6 +147,7 @@ app.use('/api/admin/settings/platform-fee', adminPlatformFeeRouter);
 app.use('/api/admin/earnings', earningRoutes);
 app.use('/api/admin/audit-logs', auditLogRoutes);
 app.use('/api/admin/blogs', adminBlogRouter);
+app.use('/api/admin/legal', adminLegalRouter);
 
 // 404 handler for undefined API routes
 app.use('/api/*', (req, res) => {
@@ -178,6 +183,22 @@ async function startServer() {
 
     // Initialize editorial blogs baseline if empty
     await seedInitialBlogs(false);
+
+    // Initialize legal pages baseline if empty
+    await seedInitialLegalContent(false);
+
+    // Safe recovery scan for pending/failed order emails on server startup
+    processPendingOrderEmails().catch((emailErr) => {
+      console.warn('[Startup] Warning checking pending order emails:', emailErr.message);
+    });
+
+    // Scheduled background retry cycle every 15 minutes for transient delivery failures
+    const emailRetryJob = setInterval(() => {
+      processPendingOrderEmails().catch((err) => {
+        console.warn('[EmailRetryJob] Warning during background email retry check:', err.message);
+      });
+    }, 15 * 60 * 1000);
+    emailRetryJob.unref();
 
     app.listen(PORT, () => {
       console.log(`===============================================`);

@@ -235,7 +235,7 @@ export const initialProducts = [
     originalPrice: 7990,
     rating: 4.9,
     reviewCount: 4502,
-    imageUrl: "https://images.unsplash.com/photo-1617005082133-548c4dd27f35?w=600&q=80&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=600&q=80&auto=format&fit=crop",
     badge: "Engraving Available",
     badgeIcon: "✏️",
     featureTag: "120 Hrs Playback",
