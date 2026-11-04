@@ -1,14 +1,14 @@
 export const initialCategories = [
   { name: "True Wireless Earbuds", slug: "earbuds", imageUrl: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&q=80&auto=format&fit=crop" },
-  { name: "Neckbands", slug: "neckbands", imageUrl: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&q=80&auto=format&fit=crop" },
+  { name: "Neckbands", slug: "neckbands", imageUrl: "/images/products/voltix-neckband-pro.jpg" },
   { name: "Smart Watches", slug: "smartwatches", imageUrl: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80&auto=format&fit=crop" },
   { name: "Wireless Headphones", slug: "headphones", imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80&auto=format&fit=crop" },
   { name: "Wireless Speakers", slug: "speakers", imageUrl: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=300&q=80&auto=format&fit=crop" },
-  { name: "Dashcams", slug: "dashcams", imageUrl: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&q=80&auto=format&fit=crop" },
-  { name: "Projectors", slug: "projectors", imageUrl: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=300&q=80&auto=format&fit=crop" },
-  { name: "Soundbars", slug: "soundbars", imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80&auto=format&fit=crop" },
-  { name: "Trimmers", slug: "trimmers", imageUrl: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=300&q=80&auto=format&fit=crop" },
-  { name: "Power Banks", slug: "powerbanks", imageUrl: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=300&q=80&auto=format&fit=crop" },
+  { name: "Dashcams", slug: "dashcams", imageUrl: "/images/products/voltix-dashcam-pro.jpg" },
+  { name: "Projectors", slug: "projectors", imageUrl: "/images/products/voltix-cinehead-f1.jpg" },
+  { name: "Soundbars", slug: "soundbars", imageUrl: "/images/products/voltix-aavante-bar-480.jpg" },
+  { name: "Trimmers", slug: "trimmers", imageUrl: "/images/products/voltix-slazer-k100.jpg" },
+  { name: "Power Banks", slug: "powerbanks", imageUrl: "/images/products/voltix-energyshroom-pb300.jpg" },
 ];
 
 export const initialProducts = [
@@ -235,7 +235,7 @@ export const initialProducts = [
     originalPrice: 7990,
     rating: 4.9,
     reviewCount: 4502,
-    imageUrl: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=600&q=80&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1627989580309-bfaf3e58af6f?w=600&q=80&auto=format&fit=crop",
     badge: "Engraving Available",
     badgeIcon: "✏️",
     featureTag: "120 Hrs Playback",
